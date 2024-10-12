@@ -1,0 +1,145 @@
+---
+title: "DM_HW1"
+author: "Lucy Liu"
+date: "10/3/2024"
+output: html_document
+  html_document:
+    keep_md: yes
+---
+
+Data Mining HW1: Eats4Life Recommendation
+```{r}
+#load in needed libraries
+library(arules)
+library(arulesViz)
+library(dplyr)
+
+# textbook: https://sjsimmo2.github.io/DataMining-Fall/introduction.html#transaction-data
+```
+
+
+
+```{r}
+order = read.table("https://raw.githubusercontent.com/sjsimmo2/DataMining-Fall/refs/heads/master/orderData.csv", sep=",", header=T)
+```
+```{r}
+#These data are long so need to "roll" up into 1 observation per person
+# to get each unique observation, need to combine 2 columns
+orderData <- order %>% mutate(ID = paste(orderNo, seatNo, sep = ""))  # Create a new ID combining orderNo and seatNo
+
+temp.dat <- orderData %>% select(ID, item)
+
+new_order <- as(split(temp.dat$item, temp.dat$ID), "transactions")
+
+inspect(new_order)
+#??? removing duplicated items in transactions 
+
+# it takes 10 min to run.
+
+# why use orderNO?
+# orderNo identifies each table or party that dined at the restaurant. Each orderNo represents a transaction, and within that transaction, multiple seatNo entries indicate individual orders (each seat at the table ordered a meal). You would want to roll up the orderNo so that all items ordered for that table (the meat, wine, and side) appear on one row for each order.
+```
+```{r}
+# view all the items in the menu
+new_order@itemInfo$labels
+```
+```{r}
+# Categorizing the items into three lists
+
+# Entrees (main meat)
+entrees <- c("Duck Breast", "Filet Mignon", "Pork Chop", "Pork Tenderloin", "Roast Chicken", "Salmon", "Sea Bass", "Swordfish")
+
+# Sides
+sides <- c("Bean Trio", "Caesar Salad", "Mashed Potatoes", "Roasted Potatoes", "Roasted Root Veg", "Seasonal Veg", "Warm Goat Salad")
+
+# Wines
+wines <- c("Adelsheim Pinot Noir", "Blackstone Merlot", "Brancott Pinot Grigio", "Cantina Pinot Bianco", "Duckhorn Chardonnay", "Echeverria Gran Syrah", "Helben Blanc", "Innocent Bystander Sauvignon Blanc", "Louis Rouge", "Oyster Bay Sauvignon Blanc", "Single Vineyard Malbec", "Three Rivers Red", "Total Recall Chardonnay")
+
+# Separate wines into white wines and red wines
+
+# White wines
+white_wines <- c("Brancott Pinot Grigio", "Cantina Pinot Bianco", "Duckhorn Chardonnay", "Helben Blanc", "Innocent Bystander Sauvignon Blanc", "Oyster Bay Sauvignon Blanc", "Total Recall Chardonnay")
+
+# Red wines
+red_wines <- c("Adelsheim Pinot Noir", "Blackstone Merlot", "Echeverria Gran Syrah", "Louis Rouge", "Single Vineyard Malbec", "Three Rivers Red")
+
+# Print lists
+length(entrees)
+length(sides)
+length(wines)
+length(white_wines)
+length(red_wines)
+
+```
+
+
+
+
+```{r}
+#create item frequency plot for top 5 items
+itemFrequencyPlot(new_order,topN=5,type="absolute")
+```
+```{r}
+# Get the rules to actually run analysis
+rules <- apriori(new_order, parameter = list(supp = 0.1, conf = 0.001, target="rules", minlen=1))
+
+# sort the rules and inspect
+rules<-sort(rules, by="confidence", decreasing=TRUE)
+
+inspect(rules)
+```
+```{r}
+plot(rules)
+# seems to have a pattern. 1 scatter on the left and positive linear line on right.
+```
+```{r}
+top10rules = head(rules, n = 10, by = "confidence")
+ plot(top10rules, method = "graph",  engine = "htmlwidget")
+```
+
+```{r}
+# because want wine suggestion for EACH MAIN ENTREE
+
+# for example: Create rules for Salmon
+salmon_rules <- apriori(new_order, 
+                        parameter = list(supp=0.001, conf=0.8), #####how to know most ideal supp and conf option????????
+                        appearance = list(default="lhs", rhs="Salmon"))
+# Inspect the top rules
+inspect(sort(salmon_rules, by="confidence", decreasing=TRUE)[1:5])
+
+plot(salmon_rules) #only 5
+```
+```{r}
+#### now want to automate the process: for EACH entree.
+# Load the necessary library
+#library(arules)
+
+# Define the list of main entrees
+main_entrees <- c("Duck Breast", "Filet Mignon", "Pork Chop", "Pork Tenderloin", 
+                  "Roast Chicken", "Salmon", "Sea Bass", "Swordfish")
+
+# Loop through each main entree and generate association rules
+for (entree in main_entrees) {
+  
+  # Generate rules for the current entree
+  rules <- apriori(new_order, 
+                   parameter = list(supp = 0.001, conf = 0.8), 
+                   appearance = list(default = "lhs", rhs = entree))
+  
+  # Sort the rules by confidence and display the top 5 rules
+  cat("\nTop 5 wine suggestions for:", entree, "\n")
+  inspect(sort(rules, by = "confidence", decreasing = TRUE)[1:5])
+}
+
+
+```
+
+
+Red wine and white wine
+for loop to find each entree
+
+
+
+
+
+
