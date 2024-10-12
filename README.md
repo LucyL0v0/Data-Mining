@@ -12,4 +12,5 @@ Understand and perform different clustering techniques (for example, k-means and
 
 ## Useful resources:
 [Dr. Susan Simmons' Data Mining textbook](https://sjsimmo2.github.io/DataMining-Fall/)
+
 [Corresponding Data Repository](https://github.com/sjsimmo2/DataMining-Fall)
