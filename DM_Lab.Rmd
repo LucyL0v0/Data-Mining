@@ -1,0 +1,126 @@
+---
+title: "DM Lab"
+author: "Lucy Liu"
+date: "2024-10-10"
+output: html_document
+---
+
+```{r}
+# right click data file > option with Rstudio
+```
+```{r}
+str(teens4)
+```
+```{r}
+summary(teens4)
+```
+
+```{r}
+library(DataExplorer)
+create_report(teens4)
+```
+```{r}
+#  dont' drop NAs Gender variable (put missing category)
+```
+```{r}
+# log transformation not work b/c skewed
+```
+```{r}
+#variable clutstering try
+library(ClustOfVar)
+
+```
+```{r}
+teens4$drunk <- as.factor(teens4$drunk)
+teens4$abercrombie <- as.factor(teens4$abercrombie)
+teens4$hollister <- as.factor(teens4$hollister)
+teens4$clothes <- as.factor(teens4$clothes)
+teens4$dress <- as.factor(teens4$dress)
+teens4$cheerleading <- as.factor(teens4$cheerleading)
+teens4$gender <- factor(teens4$gender, levels = c(levels(teens4$gender), "Missing"))
+teens4$gender <- replace(teens4$gender, is.na(teens4$gender), "Missing")
+sapply(teens4, class)
+```
+```{r}
+str(teens4)
+```
+
+
+```{r}
+#quant.var = teens4[, c(3, 6, 19, 20)]  # Assuming these are numerical variables
+#qual.var = teens4[, c(2, 4, 5, 7:18)]  # Assuming these are categorical variables
+
+```
+```{r}
+#var.clust.h = hclustvar(X.quanti = quant.var, X.quali = qual.var)
+
+```
+```{r}
+# Separate quantitative and qualitative variables
+quant.var = teens4[, sapply(teens4, function(x) class(x) %in% c("numeric", "integer"))]
+qual.var  = teens4[, sapply(teens4, function(x) class(x) %in% c("factor", "character"))]
+
+```
+
+
+```{r}
+## Perform hierarchical clustering of variables
+var.clust.h = hclustvar(X.quanti = quant.var, X.quali = qual.var)
+
+```
+```{r}
+# Assess stability
+stab = stability(var.clust.h, B = 50) # took 3.5 hours to ran
+
+# Plot the stability of the clusters
+plot(stab) #seems like having 6 clusters is the best looking at the graph
+```
+```{r}
+plot(var.clust.h)
+```
+
+```{r}
+# 6 dimensions / 6 clusters to use
+h6=cutreevar(var.clust.h, 6)
+sort(h6$cluster)
+```
+
+```{r}
+# how to cluster
+
+# using 15:00 --> using PCA selecting variables NOT same as running PCA on aggregated variables.
+# goal: cluster data on the variable clustered data
+```
+
+```{r}
+# sterling's code
+factor_columns <- c("gender", "cheerleading", "dress", "abercrombie", "hollister", "shopping", "drunk")
+
+# Use model.matrix to create dummy variables for the factors and bind them with numeric columns
+teens4_encoded <- lapply(factor_columns, function(col) {
+  model.matrix(~ get(col) - 1, data = teens4)  # Convert factor columns to dummies, remove intercept
+})
+# Step 2: Keep all numeric and integer columns, excluding the factors
+numeric_columns <- setdiff(names(teens4), factor_columns)
+teens4_numeric <- teens4[, numeric_columns]
+# Step 3: Bind the numeric columns and the encoded dummy variables
+teens4_combined <- cbind(teens4_numeric, teens4_encoded)
+# Step 4: Ensure all columns are numeric (just in case)
+teens4_combined[] <- lapply(teens4_combined, as.numeric)
+# Step 5: Standardize the data
+teens4_scaled <- scale(teens4_combined)
+pca_result <- prcomp(teens4_scaled, center = TRUE, scale. = TRUE)
+```
+```{r}
+library(factoextra)
+fviz_nbclust(pca_result$x[,c(1:2)], kmeans, method = "silhouette",k.max = 9)
+```
+
+
+
+
+
+
+
+
+
